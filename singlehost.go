@@ -29,51 +29,15 @@ import (
 	"net/http"
 )
 
-// Middleware
-type Middleware struct {
-	f http.Handler // before h
-	h http.Handler // after f
-}
-
-func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	m.f.ServeHTTP(w, r)
-	m.h.ServeHTTP(w, r)
-}
-
-func Wrap(heir, f http.Handler) http.Handler {
-	var m Middleware
-	m.f = f
-	m.h = heir
-	return m
-}
-
-func WrapFunc(heir, f http.HandlerFunc) http.HandlerFunc {
-	var m Middleware
-	m.f = http.HandlerFunc(f)
-	m.h = http.HandlerFunc(heir)
-	return m.ServeHTTP
-}
-
-// Boolware returns false if should not continue
-type Boolware func(w http.ResponseWriter, r *http.Request) bool
-
-// WrapBoolware returns heir(w,r) only if f(w,r) returns true
-func WrapBoolware(heir http.Handler, f Boolware) http.Handler {
-	return http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			if f(w, r) {
-				heir.ServeHTTP(w, r)
-			}
-		})
-}
-
-func IfThen(boolfunc Boolware, heir http.Handler) http.Handler {
-	if boolfunc == nil {
-		boolfunc = func(w http.ResponseWriter, r *http.Request) bool {
-			http.Error(w, "error", http.StatusMethodNotAllowed)
+func SingleHost(allowedhost string, heir http.Handler) http.Handler {
+	singlehost := func(w http.ResponseWriter, r *http.Request) bool {
+		if r.Host == allowedhost {
+			return true
+		} else {
+			w.WriteHeader(403)
 			return false
 		}
 	}
-	middled := WrapBoolware(heir, boolfunc)
+	middled := WrapBoolware(heir, singlehost)
 	return middled
 }

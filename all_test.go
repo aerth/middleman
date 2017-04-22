@@ -8,13 +8,14 @@ import (
 	"testing"
 )
 
-type oh struct{}
-func (o *oh) ServeHTTP(w http.ResponseWriter, r *http.Request){
-	w.Write([]byte("hello"))
-} 
+type testhandler struct{}
+
+func (t *testhandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("hello, world"))
+}
 
 func TestAllMiddleware(t *testing.T) {
-	var o = new(oh)
+	var o = new(testhandler)
 	h := CORS([]string{"http://example.com", "https://example.com"}, SingleHost("example.com", o))
 	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
 	req.Header.Set("Origin", "http://example.com")
@@ -28,10 +29,13 @@ func TestAllMiddleware(t *testing.T) {
 
 	fmt.Println(resp.Header)
 	fmt.Println(string(b))
-	if string(b) != "hello" {
+	if string(b) != "hello, world" {
 		t.Fail()
 	}
 
+	if resp.Header["Vary"][0] != "Origin" {
+		t.Fail()
+		t.Logf(`Wanted Header["Vary"] == "Origin", got %q`, resp.Header["Vary"][0])
+	}
 	// tbc
-
 }

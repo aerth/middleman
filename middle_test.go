@@ -105,7 +105,6 @@ func TestSingleHost(t *testing.T) {
 		t.Log("Wanted 403, got", resp.StatusCode)
 	}
 
-	
 	req = httptest.NewRequest("GET", "http://example.org/foo", nil)
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
