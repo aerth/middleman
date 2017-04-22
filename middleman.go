@@ -59,11 +59,11 @@ func WrapFunc(heir, f http.HandlerFunc) http.HandlerFunc {
 type Boolware func(w http.ResponseWriter, r *http.Request) bool
 
 // WrapBoolware returns heir(w,r) only if f(w,r) returns true
-func WrapBoolware(heir http.HandlerFunc, f Boolware) http.HandlerFunc {
+func WrapBoolware(heir http.Handler, f Boolware) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if f(w, r) {
-				heir(w, r)
+				heir.ServeHTTP(w, r)
 			}
 		})
 }
@@ -84,7 +84,7 @@ func Log(logger *log.Logger, heir http.HandlerFunc) (middled http.HandlerFunc) {
 	return middled
 }
 
-func IfThen(boolfunc Boolware, heir http.HandlerFunc) http.HandlerFunc {
+func IfThen(boolfunc Boolware, heir http.Handler) http.Handler {
 	if boolfunc == nil {
 		boolfunc = func(w http.ResponseWriter, r *http.Request) bool {
 			http.Error(w, "error", http.StatusMethodNotAllowed)
@@ -95,7 +95,7 @@ func IfThen(boolfunc Boolware, heir http.HandlerFunc) http.HandlerFunc {
 	return middled
 }
 
-func SingleHost(allowedhost string, heir http.HandlerFunc) http.HandlerFunc {
+func SingleHost(allowedhost string, heir http.Handler) http.Handler {
 	singlehost := func(w http.ResponseWriter, r *http.Request) bool {
 		if r.Host == allowedhost {
 			return true

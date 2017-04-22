@@ -20,7 +20,7 @@ func TestCors(t *testing.T) {
 	// do request
 	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
 	req.Header.Add("Origin", "http://example.com")
-	
+
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
@@ -45,5 +45,5 @@ func TestCors(t *testing.T) {
 		t.Fail()
 		t.Logf(`Wanted Header["Vary"] == "Origin", got: %q`, vary)
 	}
-	
+
 }

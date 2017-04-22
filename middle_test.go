@@ -62,7 +62,7 @@ func TestWrapper(t *testing.T) {
 }
 
 func TestBoolFunc(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	hf := func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "<html><body>Hello World!</body></html>")
 	}
 
@@ -71,11 +71,11 @@ func TestBoolFunc(t *testing.T) {
 		http.Error(w, "error", http.StatusMethodNotAllowed)
 		return false
 	}
-	handler = IfThen(failall, handler)
+	handler := IfThen(failall, http.HandlerFunc(hf))
 
 	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
 	w := httptest.NewRecorder()
-	handler(w, req)
+	handler.ServeHTTP(w, req)
 
 	resp := w.Result()
 	resp.Body.Close()
@@ -87,16 +87,16 @@ func TestBoolFunc(t *testing.T) {
 
 }
 func TestSingleHost(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	h := func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "<html><body>Hello World!</body></html>")
 	}
 
 	// add middleware
-	handler = SingleHost("example.org", handler)
+	handler := SingleHost("example.org", http.HandlerFunc(h))
 
 	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
 	w := httptest.NewRecorder()
-	handler(w, req)
+	handler.ServeHTTP(w, req)
 
 	resp := w.Result()
 	resp.Body.Close()
@@ -104,9 +104,11 @@ func TestSingleHost(t *testing.T) {
 		t.Fail()
 		t.Log("Wanted 403, got", resp.StatusCode)
 	}
+
+	
 	req = httptest.NewRequest("GET", "http://example.org/foo", nil)
 	w = httptest.NewRecorder()
-	handler(w, req)
+	handler.ServeHTTP(w, req)
 
 	resp = w.Result()
 	resp.Body.Close()
