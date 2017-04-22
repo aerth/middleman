@@ -30,7 +30,7 @@ import (
 	"net/http"
 )
 
-func wrap(heir, f http.HandlerFunc) http.HandlerFunc {
+func Wrap(heir, f http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			f(w, r)
@@ -41,7 +41,7 @@ func wrap(heir, f http.HandlerFunc) http.HandlerFunc {
 type Boolware func(w http.ResponseWriter, r *http.Request) bool
 
 // return heir(w,r) only if f(w,r) returns true
-func wrapbool(heir http.HandlerFunc, f Boolware) http.HandlerFunc {
+func WrapBoolware(heir http.HandlerFunc, f Boolware) http.HandlerFunc {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if f(w, r) {
@@ -54,7 +54,7 @@ func Hello(heir http.HandlerFunc) (middled http.HandlerFunc) {
 	hello := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Hello", "World")
 	}
-	middled = wrap(heir, hello)
+	middled = Wrap(heir, hello)
 	return middled
 }
 
@@ -63,7 +63,7 @@ func Log(logger *log.Logger, heir http.HandlerFunc) (middled http.HandlerFunc) {
 		logger.Println(r.Method, r.RemoteAddr, r.URL.Path)
 	}
 
-	middled = wrap(heir, loghandler)
+	middled = Wrap(heir, loghandler)
 
 	return middled
 
@@ -76,7 +76,7 @@ func IfThen(boolfunc Boolware, heir http.HandlerFunc) http.HandlerFunc {
 			return false
 		}
 	}
-	middled := wrapbool(heir, boolfunc)
+	middled := WrapBoolware(heir, boolfunc)
 	return middled
 }
 
@@ -89,6 +89,6 @@ func SingleHost(allowedhost string, heir http.HandlerFunc) http.HandlerFunc {
 			return false
 		}
 	}
-	middled := wrapbool(heir, singlehost)
+	middled := WrapBoolware(heir, singlehost)
 	return middled
 }
