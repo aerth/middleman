@@ -26,13 +26,9 @@
 package middleman
 
 import (
+	"log"
 	"net/http"
 )
-
-type Middleware struct {
-	http.Handler
-	heir http.Handler
-}
 
 func wrap(heir, f http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(
@@ -48,4 +44,15 @@ func Hello(heir http.HandlerFunc) (middled http.HandlerFunc) {
 	}
 	middled = wrap(heir, hello)
 	return middled
+}
+
+func Log(logger *log.Logger, heir http.HandlerFunc) (middled http.HandlerFunc) {
+	loghandler := func(w http.ResponseWriter, r *http.Request) {
+		logger.Println(r.Method, r.RemoteAddr, r.URL.Path)
+	}
+
+	middled = wrap(heir, loghandler)
+
+	return middled
+
 }
