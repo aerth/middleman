@@ -61,28 +61,58 @@ func TestWrapper(t *testing.T) {
 
 }
 
-func TestBoolFunc(t *testing.T){
-	    handler := func(w http.ResponseWriter, r *http.Request) {                                                  
-	        io.WriteString(w, "<html><body>Hello World!</body></html>")                                            
-	    }                                                                                                          
-                                                                                 
-	    // add middleware                                                                                          
-	    failall := func(w http.ResponseWriter, r *http.Request) bool {
-	     http.Error(w, "error", http.StatusMethodNotAllowed)
-	     return false
-	    }
-	    handler = IfThen(failall, handler)                                                                                   
-	                                                                                                               
-	    req := httptest.NewRequest("GET", "http://example.com/foo", nil)                                           
-	    w := httptest.NewRecorder()                                                                                
-	    handler(w, req)                                                                                            
-	                                                                                                               
-	    resp := w.Result()                                                                                         
-	    resp.Body.Close()                                                                                          
-	    if resp.StatusCode != http.StatusMethodNotAllowed {
-	    	t.Fail()
-	    	t.Logf("wanted %v, got %v", resp.StatusCode, http.StatusMethodNotAllowed)
-	  }
-	  	    	t.Logf("wanted %v, got %v", resp.StatusCode, http.StatusMethodNotAllowed)
-	  
+func TestBoolFunc(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "<html><body>Hello World!</body></html>")
+	}
+
+	// add middleware
+	failall := func(w http.ResponseWriter, r *http.Request) bool {
+		http.Error(w, "error", http.StatusMethodNotAllowed)
+		return false
+	}
+	handler = IfThen(failall, handler)
+
+	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusMethodNotAllowed {
+		t.Fail()
+		t.Logf("wanted %v, got %v", resp.StatusCode, http.StatusMethodNotAllowed)
+	}
+	t.Logf("wanted %v, got %v", resp.StatusCode, http.StatusMethodNotAllowed)
+
+}
+func TestSingleHost(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "<html><body>Hello World!</body></html>")
+	}
+
+	// add middleware
+	handler = SingleHost("example.org", handler)
+
+	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	w := httptest.NewRecorder()
+	handler(w, req)
+
+	resp := w.Result()
+	resp.Body.Close()
+	if resp.StatusCode != 403 {
+		t.Fail()
+		t.Log("Wanted 403, got", resp.StatusCode)
+	}
+	req = httptest.NewRequest("GET", "http://example.org/foo", nil)
+	w = httptest.NewRecorder()
+	handler(w, req)
+
+	resp = w.Result()
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fail()
+		t.Log("Wanted 200, got", resp.StatusCode)
+	}
+
 }

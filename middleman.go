@@ -42,12 +42,12 @@ type Boolware func(w http.ResponseWriter, r *http.Request) bool
 
 // return heir(w,r) only if f(w,r) returns true
 func wrapbool(heir http.HandlerFunc, f Boolware) http.HandlerFunc {
-     return http.HandlerFunc(                                                                                 
-	          func(w http.ResponseWriter, r *http.Request) {                                                       
-	              if f(w, r){
-	              heir(w, r)
-	              }                                                                                      
-	          })     
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if f(w, r) {
+				heir(w, r)
+			}
+		})
 }
 
 func Hello(heir http.HandlerFunc) (middled http.HandlerFunc) {
@@ -71,11 +71,24 @@ func Log(logger *log.Logger, heir http.HandlerFunc) (middled http.HandlerFunc) {
 
 func IfThen(boolfunc Boolware, heir http.HandlerFunc) http.HandlerFunc {
 	if boolfunc == nil {
-	boolfunc = func(w http.ResponseWriter, r *http.Request) bool{
-		http.Error(w, "error", http.StatusMethodNotAllowed)
-		return false
-	}
+		boolfunc = func(w http.ResponseWriter, r *http.Request) bool {
+			http.Error(w, "error", http.StatusMethodNotAllowed)
+			return false
+		}
 	}
 	middled := wrapbool(heir, boolfunc)
+	return middled
+}
+
+func SingleHost(allowedhost string, heir http.HandlerFunc) http.HandlerFunc {
+	singlehost := func(w http.ResponseWriter, r *http.Request) bool {
+		if r.Host == allowedhost {
+			return true
+		} else {
+			w.WriteHeader(403)
+			return false
+		}
+	}
+	middled := wrapbool(heir, singlehost)
 	return middled
 }
