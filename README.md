@@ -1,3 +1,3 @@
 # middleman
 
-### collection of middleware
+### collection of (http) middleware

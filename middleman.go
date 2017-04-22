@@ -22,7 +22,7 @@
 * SOFTWARE.
  */
 
-// Package middleman makes adding middleware easy
+// Package middleman makes adding http middleware handlers easy
 package middleman
 
 import (
@@ -30,17 +30,35 @@ import (
 	"net/http"
 )
 
-func Wrap(heir, f http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			f(w, r)
-			heir(w, r)
-		})
+// Middleware
+type Middleware struct {
+	f http.Handler // before h
+	h http.Handler // after f
 }
 
+func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	m.f.ServeHTTP(w, r)
+	m.h.ServeHTTP(w, r)
+}
+
+func Wrap(heir, f http.Handler) http.Handler {
+	var m Middleware
+	m.f = f
+	m.h = heir
+	return m
+}
+
+func WrapFunc(heir, f http.HandlerFunc) http.HandlerFunc {
+	var m Middleware
+	m.f = http.HandlerFunc(f)
+	m.h = http.HandlerFunc(heir)
+	return m.ServeHTTP
+}
+
+// Boolware returns false if should not continue
 type Boolware func(w http.ResponseWriter, r *http.Request) bool
 
-// return heir(w,r) only if f(w,r) returns true
+// WrapBoolware returns heir(w,r) only if f(w,r) returns true
 func WrapBoolware(heir http.HandlerFunc, f Boolware) http.HandlerFunc {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +72,7 @@ func Hello(heir http.HandlerFunc) (middled http.HandlerFunc) {
 	hello := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Hello", "World")
 	}
-	middled = Wrap(heir, hello)
+	middled = WrapFunc(heir, hello)
 	return middled
 }
 
@@ -62,11 +80,8 @@ func Log(logger *log.Logger, heir http.HandlerFunc) (middled http.HandlerFunc) {
 	loghandler := func(w http.ResponseWriter, r *http.Request) {
 		logger.Println(r.Method, r.RemoteAddr, r.URL.Path)
 	}
-
-	middled = Wrap(heir, loghandler)
-
+	middled = WrapFunc(heir, loghandler)
 	return middled
-
 }
 
 func IfThen(boolfunc Boolware, heir http.HandlerFunc) http.HandlerFunc {
